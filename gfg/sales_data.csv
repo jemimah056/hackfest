@@ -1,0 +1,13 @@
+date,region,product,revenue
+2024-01-01,North,Electronics,5000
+2024-01-02,South,Clothing,3000
+2024-01-03,East,Electronics,7000
+2024-01-04,West,Furniture,2000
+2024-02-01,North,Clothing,4500
+2024-02-02,South,Electronics,6000
+2024-02-03,East,Furniture,3500
+2024-02-04,West,Electronics,8000
+2024-03-01,North,Electronics,6500
+2024-03-02,South,Furniture,4200
+2024-03-03,East,Clothing,2800
+2024-03-04,West,Electronics,9000

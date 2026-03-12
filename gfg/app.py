@@ -25,13 +25,9 @@ html, body, [class*="css"]  {
     font-family: 'Poppins', sans-serif;
 }
 
-/* PROFESSIONAL BLUE BACKGROUND */
-
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(180deg,#0b1e4d,#1e3a8a);
 }
-
-/* TITLE STYLE */
 
 .main-title {
     font-size:48px;
@@ -42,8 +38,6 @@ html, body, [class*="css"]  {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-
-/* KPI CARDS */
 
 .card {
     background:white;
@@ -64,8 +58,6 @@ html, body, [class*="css"]  {
     color:#6b7280;
 }
 
-/* DATAFRAME STYLE */
-
 div[data-testid="stDataFrame"] {
     background:white;
     border-radius:10px;
@@ -73,6 +65,23 @@ div[data-testid="stDataFrame"] {
 
 </style>
 """, unsafe_allow_html=True)
+
+# -------------------------
+# CSV LOADER (FIX UTF ERROR)
+# -------------------------
+
+def load_csv(file):
+
+    try:
+        df = pd.read_csv(file, encoding="utf-8")
+    except:
+        try:
+            df = pd.read_csv(file, encoding="latin1")
+        except:
+            df = pd.read_csv(file, encoding="ISO-8859-1")
+
+    return df
+
 
 # -------------------------
 # CSV UPLOAD
@@ -86,13 +95,13 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+    df = load_csv(uploaded_file)
     st.sidebar.success("CSV uploaded successfully")
 else:
-    df = pd.read_csv("sales_data.csv")
+    df = load_csv("sales_data.csv")
 
 # -------------------------
-# AUTO DETECT COLUMN TYPES
+# AUTO DETECT COLUMNS
 # -------------------------
 
 numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
@@ -105,6 +114,7 @@ categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
 st.sidebar.title("Dashboard Filters")
 
 if categorical_cols:
+
     filter_column = st.sidebar.selectbox(
         "Select Filter Column",
         categorical_cols
@@ -135,7 +145,7 @@ st.write("Ask business questions and generate dashboards instantly.")
 st.divider()
 
 # -------------------------
-# KPI METRICS (GENERIC)
+# KPI METRICS
 # -------------------------
 
 col1, col2, col3 = st.columns(3)
@@ -179,36 +189,47 @@ st.divider()
 
 query = st.text_input("💬 Ask a business question")
 
-st.caption("Example: category analysis, trend analysis, distribution")
+st.caption("Example: revenue by product, sales by region, revenue trend")
 
 
 # -------------------------
-# QUERY ANALYSIS
+# SMART QUERY ANALYSIS
 # -------------------------
 
 def analyze_query(query):
 
     query = query.lower()
 
-    if numeric_cols and categorical_cols:
+    num_col = numeric_cols[0] if numeric_cols else None
+    cat_col = None
 
-        num_col = numeric_cols[0]
+    # detect categorical column from query words
+    for col in categorical_cols:
+        words = col.lower().split()
+        for w in words:
+            if w in query:
+                cat_col = col
+                break
+        if cat_col:
+            break
+
+    # fallback
+    if cat_col is None and categorical_cols:
         cat_col = categorical_cols[0]
+
+    if num_col and cat_col:
 
         result = filtered_df.groupby(cat_col)[num_col].sum().reset_index()
 
-        if "trend" in query or "line" in query:
-
+        if "trend" in query or "line" in query or "date" in query:
             chart = "line"
             title = f"{num_col} Trend by {cat_col}"
 
-        elif "pie" in query or "distribution" in query:
-
+        elif "distribution" in query or "pie" in query:
             chart = "pie"
             title = f"{num_col} Distribution by {cat_col}"
 
         else:
-
             chart = "bar"
             title = f"{num_col} by {cat_col}"
 
@@ -220,13 +241,14 @@ def analyze_query(query):
 
     return result, chart, title
 
+
 # -------------------------
 # DASHBOARD OUTPUT
 # -------------------------
 
 if query:
 
-    with st.spinner("AI is generating insights..."):
+    with st.spinner("Generating insights..."):
 
         result, chart, title = analyze_query(query)
 
